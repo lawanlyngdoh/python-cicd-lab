@@ -13,7 +13,7 @@ permissions:
 jobs:
   test:
     name: Run Python tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -34,3 +34,41 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -v
+
+  docker-build:
+    name: Validate Docker image
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build Docker image
+        run: docker build --tag python-cicd-lab:${{ github.sha }} .
+
+      - name: Start container
+        run: |
+          docker run \
+            --detach \
+            --name python-cicd-api \
+            --publish 8000:8000 \
+            python-cicd-lab:${{ github.sha }}
+
+      - name: Run container smoke test
+        run: |
+          for attempt in {1..10}; do
+            if curl --fail --silent http://localhost:8000/health; then
+              exit 0
+            fi
+
+            sleep 1
+          done
+
+          docker logs python-cicd-api
+          exit 1
+
+      - name: Remove test container
+        if: always()
+        run: docker rm --force python-cicd-api
