@@ -7,5 +7,4 @@ def subtract(first_number: float, second_number: float) -> float:
 
 
 def multiply(first_number: float, second_number: float) -> float:
-    # Deliberately incorrect for our CI exercise
-    return first_number + second_number
+    return first_number * second_number
